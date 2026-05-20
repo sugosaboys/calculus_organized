@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Calculus — Interactive Study App</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090f;
+  --surface:#0e1118;
+  --card:#141824;
+  --border:#1e2535;
+  --border2:#2a3348;
+  --text:#e8ecf4;
+  --muted:#6b7a99;
+  --dim:#3d4a66;
+  --gold:#f0b429;
+  --gold2:#ffd166;
+  --teal:#06d6a0;
+  --coral:#ff6b6b;
+  --blue:#4895ef;
+  --purple:#9b5de5;
+  --font-display:'Fraunces',serif;
+  --font-ui:'Syne',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);min-height:100vh;overflow-x:hidden}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* GRAIN OVERLAY */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+
+/* ═══ SCREENS ═══ */
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* ═══ HOME SCREEN ═══ */
+#home{background:var(--bg)}
+.home-hero{position:relative;padding:5rem 3rem 3rem;overflow:hidden;border-bottom:1px solid var(--border)}
+.hero-glow{position:absolute;top:-80px;left:-80px;width:500px;height:500px;background:radial-gradient(circle,rgba(240,180,41,.07) 0%,transparent 70%);pointer-events:none}
+.hero-glow2{position:absolute;bottom:-100px;right:-50px;width:400px;height:400px;background:radial-gradient(circle,rgba(6,214,160,.05) 0%,transparent 70%);pointer-events:none}
+.home-label{font-family:var(--font-mono);font-size:.65rem;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem}
+.home-title{font-family:var(--font-display);font-size:clamp(2.8rem,6vw,5rem);font-weight:700;line-height:1.05;color:var(--text);max-width:700px}
+.home-title span{font-style:italic;color:var(--gold)}
+.home-sub{margin-top:1.2rem;font-size:.95rem;color:var(--muted);max-width:500px;line-height:1.7;font-weight:400}
+.home-stats{display:flex;gap:2.5rem;margin-top:2.5rem;padding-top:2rem;border-top:1px solid var(--border)}
+.hstat{display:flex;flex-direction:column;gap:.15rem}
+.hstat-n{font-family:var(--font-display);font-size:2rem;font-weight:600;color:var(--text);line-height:1}
+.hstat-l{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+.modules-section{padding:3rem}
+.section-label{font-family:var(--font-mono);font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1.5rem}
+.modules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1px;background:var(--border)}
+
+.module-card{background:var(--card);padding:1.8rem;cursor:pointer;transition:background .2s;position:relative;overflow:hidden}
+.module-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent,var(--gold)),transparent);opacity:0;transition:opacity .3s}
+.module-card:hover{background:#181f30}
+.module-card:hover::before{opacity:1}
+.mc-num{font-family:var(--font-display);font-size:3rem;font-weight:700;line-height:1;margin-bottom:.8rem;opacity:.15}
+.mc-tag{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;padding:.2rem .6rem;border:1px solid var(--border2);color:var(--muted);border-radius:2px;display:inline-block;margin-bottom:.8rem}
+.mc-title{font-family:var(--font-display);font-size:1.3rem;font-weight:600;color:var(--text);margin-bottom:.5rem;line-height:1.2}
+.mc-desc{font-size:.82rem;color:var(--muted);line-height:1.65;margin-bottom:1.2rem}
+.mc-footer{display:flex;align-items:center;justify-content:space-between}
+.mc-pills{display:flex;gap:.4rem}
+.mc-pill{font-family:var(--font-mono);font-size:.58rem;padding:.18rem .5rem;border-radius:2px;letter-spacing:.05em}
+.pill-theory{background:rgba(72,149,239,.12);color:var(--blue);border:1px solid rgba(72,149,239,.2)}
+.pill-quiz{background:rgba(240,180,41,.1);color:var(--gold);border:1px solid rgba(240,180,41,.2)}
+.mc-arrow{color:var(--dim);font-size:.9rem;transition:transform .2s,color .2s}
+.module-card:hover .mc-arrow{transform:translateX(4px);color:var(--gold)}
+
+/* Progress ring on cards */
+.mc-progress{position:absolute;top:1.5rem;right:1.5rem;width:36px;height:36px}
+.mc-progress svg{transform:rotate(-90deg)}
+.mc-progress .track{fill:none;stroke:var(--border2);stroke-width:3}
+.mc-progress .fill{fill:none;stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset .5s}
+
+/* ═══ LEARN SCREEN ═══ */
+#learn{background:var(--bg)}
+.learn-topbar{position:sticky;top:0;z-index:50;background:rgba(7,9,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;padding:.8rem 2rem}
+.back-btn{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:none;border:1px solid var(--border2);padding:.35rem .8rem;cursor:pointer;border-radius:2px;transition:all .15s}
+.back-btn:hover{border-color:var(--gold);color:var(--gold)}
+.topbar-title{font-family:var(--font-display);font-size:1rem;font-weight:600;flex:1}
+.topbar-tabs{display:flex;gap:0}
+.ttab{font-family:var(--font-mono);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;padding:.5rem 1.1rem;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.ttab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.ttab:hover:not(.active){color:var(--text)}
+
+/* Theory tab content */
+.learn-body{display:none;padding:2.5rem 3rem;max-width:900px;margin:0 auto}
+.learn-body.active{display:block;animation:fadeUp .35s ease}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Theory sections */
+.theory-intro{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--gold);padding:1.5rem 1.8rem;margin-bottom:2rem;border-radius:0 4px 4px 0}
+.theory-intro p{font-size:.95rem;line-height:1.8;color:var(--text)}
+.theory-intro strong{color:var(--gold)}
+
+.topic-block{margin-bottom:2.5rem}
+.topic-header{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;padding-bottom:.7rem;border-bottom:1px solid var(--border)}
+.topic-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.topic-num{font-family:var(--font-mono);font-size:.7rem;color:var(--muted)}
+.topic-title{font-family:var(--font-display);font-size:1.25rem;font-weight:600;color:var(--text)}
+
+.theory-text{font-size:.9rem;line-height:1.85;color:#b8c4d8;margin-bottom:1rem}
+.theory-text strong{color:var(--text)}
+.theory-text em{color:var(--gold);font-style:normal}
+
+/* Formula box */
+.formula-box{background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:1rem 1.4rem;margin:1rem 0;font-family:var(--font-mono);font-size:.88rem;color:var(--gold2);line-height:1.7}
+.formula-box .flabel{font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem}
+
+/* Example box */
+.example-box{background:rgba(6,214,160,.04);border:1px solid rgba(6,214,160,.15);border-radius:6px;padding:1.2rem 1.4rem;margin:1rem 0}
+.ex-label{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin-bottom:.5rem}
+.ex-text{font-size:.87rem;line-height:1.75;color:#a8d8ca}
+
+/* Tip box */
+.tip-box{background:rgba(240,180,41,.04);border:1px solid rgba(240,180,41,.15);border-radius:6px;padding:1rem 1.4rem;margin:1rem 0;display:flex;gap:.8rem;align-items:flex-start}
+.tip-icon{font-size:1rem;flex-shrink:0;margin-top:.1rem}
+.tip-text{font-size:.85rem;line-height:1.7;color:#d4b87a}
+
+/* Visual analogy */
+.analogy-box{background:rgba(72,149,239,.04);border:1px solid rgba(72,149,239,.15);border-radius:6px;padding:1.2rem 1.4rem;margin:1rem 0}
+.analogy-label{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);margin-bottom:.4rem}
+.analogy-text{font-size:.87rem;line-height:1.75;color:#a0b8e0}
+
+/* Step list */
+.step-list{list-style:none;margin:1rem 0;display:flex;flex-direction:column;gap:.6rem}
+.step-list li{display:flex;gap:.8rem;align-items:flex-start;font-size:.88rem;line-height:1.6;color:#b8c4d8}
+.step-list .step-n{font-family:var(--font-mono);font-size:.7rem;min-width:22px;height:22px;border-radius:50%;background:var(--border2);color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem}
+
+/* ═══ QUIZ TAB ═══ */
+.quiz-container{padding:2rem 3rem;max-width:780px;margin:0 auto}
+.quiz-header{margin-bottom:2rem}
+.quiz-title{font-family:var(--font-display);font-size:1.6rem;font-weight:600;margin-bottom:.4rem}
+.quiz-sub{font-size:.85rem;color:var(--muted);font-family:var(--font-mono)}
+
+/* Quiz progress */
+.quiz-prog-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:2rem;overflow:hidden}
+.quiz-prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;transition:width .4s ease}
+
+.question-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.8rem;margin-bottom:1.2rem;animation:fadeUp .3s ease}
+.q-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem}
+.q-num{font-family:var(--font-mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.q-diff{font-family:var(--font-mono);font-size:.6rem;padding:.15rem .5rem;border-radius:2px}
+.diff-easy{background:rgba(6,214,160,.1);color:var(--teal);border:1px solid rgba(6,214,160,.2)}
+.diff-medium{background:rgba(240,180,41,.1);color:var(--gold);border:1px solid rgba(240,180,41,.2)}
+.diff-hard{background:rgba(255,107,107,.1);color:var(--coral);border:1px solid rgba(255,107,107,.2)}
+
+.q-text{font-size:1rem;line-height:1.6;color:var(--text);margin-bottom:1.4rem;font-weight:400}
+.q-formula{font-family:var(--font-mono);font-size:.9rem;color:var(--gold2);background:var(--surface);padding:.4rem .8rem;border-radius:4px;display:inline-block;margin-bottom:.8rem}
+
+.options-grid{display:flex;flex-direction:column;gap:.6rem}
+.opt-btn{display:flex;align-items:center;gap:.8rem;padding:.9rem 1.1rem;background:var(--surface);border:1px solid var(--border2);border-radius:6px;cursor:pointer;text-align:left;transition:all .2s;width:100%}
+.opt-btn:hover:not(.answered){background:rgba(255,255,255,.03);border-color:var(--dim)}
+.opt-letter{font-family:var(--font-mono);font-size:.7rem;min-width:24px;height:24px;border-radius:50%;background:var(--border2);color:var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.opt-text{font-size:.88rem;color:#b8c4d8;line-height:1.4}
+.opt-btn.correct{background:rgba(6,214,160,.08);border-color:rgba(6,214,160,.4)}
+.opt-btn.correct .opt-letter{background:var(--teal);color:#0a1a15}
+.opt-btn.wrong{background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.4)}
+.opt-btn.wrong .opt-letter{background:var(--coral);color:#1a0a0a}
+.opt-btn.reveal{background:rgba(6,214,160,.04);border-color:rgba(6,214,160,.2)}
+
+.q-explanation{margin-top:1rem;padding:1rem 1.2rem;background:rgba(6,214,160,.04);border:1px solid rgba(6,214,160,.12);border-radius:6px;display:none}
+.q-explanation.show{display:block;animation:fadeUp .25s ease}
+.exp-label{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin-bottom:.4rem}
+.exp-text{font-size:.84rem;line-height:1.7;color:#a8d8ca}
+
+.quiz-nav{display:flex;justify-content:space-between;align-items:center;padding-top:1.5rem}
+.qnav-info{font-family:var(--font-mono);font-size:.68rem;color:var(--muted)}
+
+/* Quiz result */
+.quiz-result{display:none;text-align:center;padding:3rem;animation:fadeUp .4s ease}
+.quiz-result.show{display:block}
+.result-ring{position:relative;width:140px;height:140px;margin:0 auto 2rem}
+.result-ring svg{transform:rotate(-90deg)}
+.result-score-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.result-big{font-family:var(--font-display);font-size:2rem;font-weight:700;line-height:1}
+.result-denom{font-family:var(--font-mono);font-size:.65rem;color:var(--muted)}
+.result-grade{font-family:var(--font-display);font-size:1.8rem;font-weight:600;margin-bottom:.5rem}
+.result-msg{font-size:.9rem;color:var(--muted);margin-bottom:2rem;line-height:1.6}
+.result-breakdown{display:flex;justify-content:center;gap:2rem;margin-bottom:2rem}
+.rb-stat{display:flex;flex-direction:column;gap:.2rem;align-items:center}
+.rb-val{font-family:var(--font-display);font-size:1.4rem;font-weight:600}
+.rb-lbl{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.correct-val{color:var(--teal)}
+.wrong-val{color:var(--coral)}
+
+/* Buttons */
+.btn-primary{font-family:var(--font-ui);font-size:.85rem;font-weight:600;letter-spacing:.05em;padding:.7rem 1.8rem;background:var(--gold);color:#0a0800;border:none;border-radius:4px;cursor:pointer;transition:all .2s}
+.btn-primary:hover{background:var(--gold2);transform:translateY(-1px)}
+.btn-outline{font-family:var(--font-ui);font-size:.85rem;font-weight:600;padding:.7rem 1.8rem;background:none;color:var(--text);border:1px solid var(--border2);border-radius:4px;cursor:pointer;transition:all .2s}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+.btn-sm{padding:.45rem 1rem;font-size:.78rem}
+
+/* Module colors */
+.m1{--accent:#f0b429;--accent-rgb:240,180,41}
+.m2{--accent:#4895ef;--accent-rgb:72,149,239}
+.m3{--accent:#06d6a0;--accent-rgb:6,214,160}
+.m4{--accent:#9b5de5;--accent-rgb:155,93,229}
+.m5{--accent:#ff6b6b;--accent-rgb:255,107,107}
+
+/* Responsive */
+@media(max-width:680px){
+  .home-hero,.modules-section,.learn-body,.quiz-container{padding:1.5rem}
+  .learn-topbar{padding:.8rem 1rem}
+  .learn-body{padding:1.5rem}
+  .home-title{font-size:2.2rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HOME SCREEN ═══ -->
+<div class="screen active" id="home">
+  <div class="home-hero">
+    <div class="hero-glow"></div>
+    <div class="hero-glow2"></div>
+    <div class="home-label">Interactive Learning · Introduction to Calculus</div>
+    <h1 class="home-title">Master <span>Calculus</span><br/>From the Ground Up</h1>
+    <p class="home-sub">5 complete modules with in-depth theory, worked examples, and 10-question quizzes — all in one page. Learn at your own pace.</p>
+    <div class="home-stats">
+      <div class="hstat"><span class="hstat-n">5</span><span class="hstat-l">Modules</span></div>
+      <div class="hstat"><span class="hstat-n">50</span><span class="hstat-l">Quiz Questions</span></div>
+      <div class="hstat"><span class="hstat-n">53</span><span class="hstat-l">Topics</span></div>
+      <div class="hstat"><span class="hstat-n" id="globalPct">0%</span><span class="hstat-l">Mastered</span></div>
+    </div>
+  </div>
+
+  <div class="modules-section">
+    <div class="section-label">Choose a Module to Begin</div>
+    <div class="modules-grid">
+
+      <div class="module-card m1" onclick="openModule(0)">
+        <div class="mc-progress"><svg viewBox="0 0 36 36"><circle class="track" cx="18" cy="18" r="15.9"/><circle class="fill" cx="18" cy="18" r="15.9" stroke="var(--gold)" stroke-dasharray="100 100" stroke-dashoffset="100" id="prog-ring-0"/></svg></div>
+        <div class="mc-num" style="color:var(--gold)">01</div>
+        <span class="mc-tag">Foundations</span>
+        <div class="mc-title">Pre-Calculus Foundations</div>
+        <div class="mc-desc">The essential groundwork — number systems, algebra, geometry, and coordinate systems that every calculus idea depends on.</div>
+        <div class="mc-footer"><div class="mc-pills"><span class="mc-pill pill-theory">8 Topics</span><span class="mc-pill pill-quiz">10 Questions</span></div><span class="mc-arrow">→</span></div>
+      </div>
+
+      <div class="module-card m2" onclick="openModule(1)">
+        <div class="mc-progress"><svg viewBox="0 0 36 36"><circle class="track" cx="18" cy="18" r="15.9"/><circle class="fill" cx="18" cy="18" r="15.9" stroke="var(--blue)" stroke-dasharray="100 100" stroke-dashoffset="100" id="prog-ring-1"/></svg></div>
+        <div class="mc-num" style="color:var(--blue)">02</div>
+        <span class="mc-tag">Core Concepts</span>
+        <div class="mc-title">Functions</div>
+        <div class="mc-desc">Understand functions as mathematical rules — polynomials, exponentials, logarithms, and the language of trigonometry.</div>
+        <div class="mc-footer"><div class="mc-pills"><span class="mc-pill pill-theory">12 Topics</span><span class="mc-pill pill-quiz">10 Questions</span></div><span class="mc-arrow">→</span></div>
+      </div>
+
+      <div class="module-card m3" onclick="openModule(2)">
+        <div class="mc-progress"><svg viewBox="0 0 36 36"><circle class="track" cx="18" cy="18" r="15.9"/><circle class="fill" cx="18" cy="18" r="15.9" stroke="var(--teal)" stroke-dasharray="100 100" stroke-dashoffset="100" id="prog-ring-2"/></svg></div>
+        <div class="mc-num" style="color:var(--teal)">03</div>
+        <span class="mc-tag">Core Calculus</span>
+        <div class="mc-title">Limits &amp; Intro to Derivatives</div>
+        <div class="mc-desc">The heart of calculus — learn what limits are, how continuity works, and how the derivative emerges from rates of change.</div>
+        <div class="mc-footer"><div class="mc-pills"><span class="mc-pill pill-theory">10 Topics</span><span class="mc-pill pill-quiz">10 Questions</span></div><span class="mc-arrow">→</span></div>
+      </div>
+
+      <div class="module-card m4" onclick="openModule(3)">
+        <div class="mc-progress"><svg viewBox="0 0 36 36"><circle class="track" cx="18" cy="18" r="15.9"/><circle class="fill" cx="18" cy="18" r="15.9" stroke="var(--purple)" stroke-dasharray="100 100" stroke-dashoffset="100" id="prog-ring-3"/></svg></div>
+        <div class="mc-num" style="color:var(--purple)">04</div>
+        <span class="mc-tag">Applications</span>
+        <div class="mc-title">Differentiation Rules</div>
+        <div class="mc-desc">Master the product, quotient and chain rules — then apply them to curve sketching, maxima/minima, and real-world optimisation.</div>
+        <div class="mc-footer"><div class="mc-pills"><span class="mc-pill pill-theory">13 Topics</span><span class="mc-pill pill-quiz">10 Questions</span></div><span class="mc-arrow">→</span></div>
+      </div>
+
+      <div class="module-card m5" onclick="openModule(4)">
+        <div class="mc-progress"><svg viewBox="0 0 36 36"><circle class="track" cx="18" cy="18" r="15.9"/><circle class="fill" cx="18" cy="18" r="15.9" stroke="var(--coral)" stroke-dasharray="100 100" stroke-dashoffset="100" id="prog-ring-4"/></svg></div>
+        <div class="mc-num" style="color:var(--coral)">05</div>
+        <span class="mc-tag">Second Pillar</span>
+        <div class="mc-title">Integration</div>
+        <div class="mc-desc">Riemann sums, the Fundamental Theorem of Calculus, substitution, areas — and real applications like escape velocity.</div>
+        <div class="mc-footer"><div class="mc-pills"><span class="mc-pill pill-theory">9 Topics</span><span class="mc-pill pill-quiz">10 Questions</span></div><span class="mc-arrow">→</span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LEARN SCREEN ═══ -->
+<div class="screen" id="learn">
+  <div class="learn-topbar">
+    <button class="back-btn" onclick="goHome()">← Home</button>
+    <span class="topbar-title" id="learnTitle">Module</span>
+    <div class="topbar-tabs">
+      <button class="ttab active" onclick="switchTab('theory')" id="tab-theory">📖 Theory</button>
+      <button class="ttab" onclick="switchTab('quiz')" id="tab-quiz">✏️ Quiz</button>
+    </div>
+  </div>
+
+  <!-- THEORY -->
+  <div class="learn-body active" id="body-theory">
+    <div id="theoryContent"></div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="learn-body" id="body-quiz">
+    <div class="quiz-container" id="quizContent"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// DATA — MODULES
+// ══════════════════════════════════════════════
+const MODULES = [
+
+// ─── MODULE 0: PRE-CALCULUS ───
+{
+  id:0, title:"Pre-Calculus Foundations", color:"var(--gold)",
+  theory:[
+    {
+      icon:"🔢", title:"The Real Number Line",
+      content:`The <strong>real number line</strong> is an infinite line where every point corresponds to exactly one real number. Numbers to the right are <em>larger</em>, numbers to the left are <em>smaller</em>.
+
+Real numbers include: integers (...−2, −1, 0, 1, 2...), fractions (½, ¾), irrational numbers (√2, π), and decimals.`,
+      formula:`ℝ = {rational numbers} ∪ {irrational numbers}`,
+      example:`The number 3.14159... (π) cannot be written as a fraction — it's irrational. But √4 = 2, which IS rational.`,
+      tip:`Think of the real line like a ruler stretching infinitely in both directions. Every imaginable number lives somewhere on it.`
+    },
+    {
+      icon:"📐", title:"Algebraic Expressions",
+      content:`An <strong>algebraic expression</strong> uses numbers, variables (like x, y), and operations. To simplify, we collect <em>like terms</em> — terms with the same variable and power.
+
+Key operations: expanding brackets uses the distributive law, factoring does the reverse.`,
+      formula:`a(b + c) = ab + ac   [Distributive Law]
+(a + b)² = a² + 2ab + b²
+(a − b)(a + b) = a² − b²`,
+      example:`Simplify: 3x² + 5x − 2x² + x = (3−2)x² + (5+1)x = x² + 6x`,
+      tip:`Always check if an expression can be factored — it usually makes further calculations much easier.`
+    },
+    {
+      icon:"📏", title:"Pythagoras & Irrational Numbers",
+      content:`The <strong>Pythagorean Theorem</strong> states that in a right-angled triangle, the square of the hypotenuse equals the sum of squares of the other two sides.
+
+√2 is <em>irrational</em> — it cannot be written as p/q where p and q are integers. This was a shocking discovery for ancient mathematicians!`,
+      formula:`a² + b² = c²   (c = hypotenuse)
+√2 ≈ 1.41421356...   (never repeats, never ends)`,
+      example:`A right triangle with sides 3 and 4 has hypotenuse: c = √(9+16) = √25 = 5`,
+      analogy:`Think of √2 as the diagonal of a unit square. You can draw it perfectly, but you can never write it as an exact fraction.`
+    },
+    {
+      icon:"⚖️", title:"Equations & Inequalities",
+      content:`An <strong>equation</strong> states that two expressions are equal (uses =). An <strong>inequality</strong> states one expression is larger or smaller (uses <, >, ≤, ≥).
+
+Solving means finding all values of the variable that make the statement true. With inequalities, <em>flipping the sign</em> when multiplying/dividing by a negative is critical.`,
+      formula:`If a < b and c < 0, then ac > bc   (sign flips!)
+Interval notation: (a,b) means a < x < b
+                   [a,b] means a ≤ x ≤ b`,
+      example:`Solve: −2x > 6 → divide both sides by −2 (flip!) → x < −3. Answer: (−∞, −3)`,
+      tip:`Always flip the inequality sign when you multiply or divide by a NEGATIVE number. This is the #1 source of errors.`
+    },
+    {
+      icon:"➕", title:"Sign Diagrams",
+      content:`A <strong>sign diagram</strong> shows where a function (or expression) is positive (+) or negative (−). This is extremely useful for solving inequalities and understanding function behaviour.
+
+Steps: 1) Find zeros/undefined points. 2) Mark them on a number line. 3) Test a value in each interval. 4) Write + or − in each region.`,
+      formula:`For f(x) = (x−2)(x+3):
+Zeros at x = 2 and x = −3
+Sign: −−−(−3)+++(2)−−−`,
+      example:`Where is (x−1)(x+2) > 0? Zeros: x=1 and x=−2. Testing: x=0 gives (−1)(2)=−2<0. So negative between roots, positive outside.`,
+      analogy:`Sign diagrams are like a weather map — they tell you where things are "positive" (sunny) or "negative" (rainy) without computing exact values.`
+    },
+    {
+      icon:"📍", title:"Distance & Absolute Value",
+      content:`The <strong>absolute value</strong> |x| gives the distance from x to zero — always non-negative. The distance between two numbers a and b on the number line is |a − b|.
+
+Absolute value equations can have TWO solutions because both +x and −x are the same distance from zero.`,
+      formula:`|x| = x  if x ≥ 0
+|x| = −x  if x < 0
+distance(a,b) = |a − b|`,
+      example:`|x − 3| = 5 means the distance from x to 3 is 5, so x = 8 or x = −2.`,
+      tip:`|x| < r means −r < x < r (x is within distance r of zero). |x| > r means x > r OR x < −r.`
+    },
+    {
+      icon:"🗺️", title:"Coordinate Systems",
+      content:`The <strong>Cartesian coordinate system</strong> uses two perpendicular number lines (x-axis and y-axis) to describe every point in a plane using an ordered pair (x, y).
+
+The x-value is the <em>horizontal</em> position, the y-value is the <em>vertical</em> position. The four quadrants are labelled I to IV.`,
+      formula:`Point P = (x, y)
+Distance between P₁(x₁,y₁) and P₂(x₂,y₂):
+d = √[(x₂−x₁)² + (y₂−y₁)²]
+Midpoint = ((x₁+x₂)/2, (y₁+y₂)/2)`,
+      example:`Distance from (1, 2) to (4, 6): d = √[(4−1)² + (6−2)²] = √[9+16] = √25 = 5`,
+      analogy:`Think of coordinates like a city grid — "5 blocks east, 3 blocks north" uniquely identifies any location.`
+    },
+    {
+      icon:"〰️", title:"Lines & Circles in the Plane",
+      content:`A <strong>line</strong> in the plane is defined by its slope (steepness) and a point it passes through. A <strong>circle</strong> is the set of all points at a fixed distance (radius) from a center point.
+
+Slope m = rise/run = change in y ÷ change in x. Parallel lines have equal slopes; perpendicular lines have slopes that multiply to −1.`,
+      formula:`Line:   y = mx + b  (slope-intercept form)
+        y − y₁ = m(x − x₁)  (point-slope form)
+Circle: (x − h)² + (y − k)² = r²
+        (center (h,k), radius r)`,
+      example:`Circle center (2,−1) radius 3: (x−2)² + (y+1)² = 9`,
+      tip:`To find the equation of a line you need TWO pieces of info: a point AND the slope (or two points to calculate the slope).`
+    }
+  ],
+  quiz:[
+    {q:"What is the absolute value of −7?", opts:["−7","7","49","0"], ans:1, diff:"easy", exp:"Absolute value is the distance from zero — always positive. |−7| = 7."},
+    {q:"Simplify the expression: 4x² − 3x + 2x² + 5x", opts:["6x² + 2x","2x² + 8x","6x + 2x²","6x² − 8x"], ans:0, diff:"easy", exp:"Collect like terms: (4+2)x² + (−3+5)x = 6x² + 2x."},
+    {q:"A right triangle has legs of length 5 and 12. What is the hypotenuse?", opts:["13","17","169","√119"], ans:0, diff:"easy", exp:"c = √(5²+12²) = √(25+144) = √169 = 13. This is a famous Pythagorean triple!"},
+    {q:"Solve the inequality: −3x > 12", opts:["x > −4","x < −4","x > 4","x < 4"], ans:1, diff:"medium", exp:"Divide both sides by −3 and FLIP the sign: x < −4."},
+    {q:"What is the distance between the points (1, 3) and (4, 7)?", opts:["5","7","√7","25"], ans:0, diff:"medium", exp:"d = √[(4−1)² + (7−3)²] = √[9+16] = √25 = 5."},
+    {q:"Which equation represents a circle with centre (0, 0) and radius 4?", opts:["x + y = 4","x² + y² = 4","x² + y² = 16","x² − y² = 16"], ans:2, diff:"easy", exp:"Circle formula: x² + y² = r². Here r = 4, so r² = 16."},
+    {q:"The slope of a line passing through (2, 3) and (6, 11) is:", opts:["2","3","½","4"], ans:0, diff:"medium", exp:"m = (11−3)/(6−2) = 8/4 = 2."},
+    {q:"Solve: |x − 2| = 6", opts:["x = 8 only","x = −4 only","x = 8 or x = −4","x = 4 or x = −8"], ans:2, diff:"medium", exp:"Distance from x to 2 equals 6: x − 2 = 6 → x = 8, or x − 2 = −6 → x = −4."},
+    {q:"Where is the expression (x + 1)(x − 3) negative?", opts:["x < −1 or x > 3","−1 < x < 3","x > 3","x < −1"], ans:1, diff:"hard", exp:"Zeros at x=−1 and x=3. Testing x=0: (1)(−3)=−3 < 0. So negative between the roots."},
+    {q:"What is the midpoint between (−2, 4) and (8, −2)?", opts:["(3, 1)","(6, 2)","(5, 1)","(3, 3)"], ans:0, diff:"medium", exp:"Midpoint = ((−2+8)/2, (4+(−2))/2) = (6/2, 2/2) = (3, 1)."}
+  ]
+},
+
+// ─── MODULE 1: FUNCTIONS ───
+{
+  id:1, title:"Functions", color:"var(--blue)",
+  theory:[
+    {
+      icon:"🔄", title:"Functions as Rules",
+      content:`A <strong>function</strong> is a rule that assigns to each input exactly ONE output. We write f(x) to mean "apply rule f to input x". The set of valid inputs is the <em>domain</em>, the set of outputs is the <em>range</em>.
+
+The key test: for every x in the domain, there is exactly one y. A vertical line hitting a graph twice means it's NOT a function.`,
+      formula:`f: domain → range
+f(x) means "f applied to x"
+Vertical Line Test: each x maps to ONE y`,
+      example:`f(x) = x² + 1. Then f(3) = 9 + 1 = 10. f(−3) = 9 + 1 = 10 also! (Different inputs, same output — that's fine.)`,
+      tip:`A function is like a machine: you put something in, you get exactly one thing out. You can get the same output from different inputs, but never two outputs from one input.`
+    },
+    {
+      icon:"⛰️", title:"Parabolas & Quadratics",
+      content:`A <strong>quadratic function</strong> f(x) = ax² + bx + c produces a U-shaped curve called a <em>parabola</em>. If a > 0 it opens upward (happy face); if a < 0 it opens downward (sad face).
+
+The <strong>vertex</strong> is the turning point — the minimum if a > 0, maximum if a < 0.`,
+      formula:`f(x) = ax² + bx + c
+Vertex x-coordinate: x = −b/(2a)
+Vertex form: f(x) = a(x − h)² + k`,
+      example:`f(x) = x² − 4x + 3. Vertex at x = −(−4)/(2·1) = 2. f(2) = 4−8+3 = −1. So vertex = (2, −1).`,
+      analogy:`A parabola is like the path of a ball thrown in the air — it rises, hits a peak (vertex), then falls.`
+    },
+    {
+      icon:"🧮", title:"Quadratic Formula",
+      content:`When you can't easily factor a quadratic, the <strong>quadratic formula</strong> always works. The <em>discriminant</em> Δ = b² − 4ac tells you how many real solutions exist before you even solve it.`,
+      formula:`x = (−b ± √(b² − 4ac)) / (2a)
+Discriminant Δ = b² − 4ac:
+  Δ > 0 → 2 real roots
+  Δ = 0 → 1 repeated root  
+  Δ < 0 → no real roots (complex)`,
+      example:`Solve 2x² − 3x − 2 = 0: Δ = 9 + 16 = 25. x = (3 ± 5)/4. So x = 2 or x = −½`,
+      tip:`Always calculate Δ first! If it's negative, stop — there are no real solutions and you're in complex number territory.`
+    },
+    {
+      icon:"📈", title:"Exponential Functions",
+      content:`An <strong>exponential function</strong> has the variable in the exponent: f(x) = aˣ. If a > 1, the function grows rapidly (exponential growth). If 0 < a < 1, it decays toward zero.
+
+The most important base is <em>e ≈ 2.718</em> — called Euler's number. It appears naturally in growth, decay, and calculus.`,
+      formula:`f(x) = aˣ  (a > 0, a ≠ 1)
+f(x) = eˣ  (natural exponential)
+Growth: a > 1 | Decay: 0 < a < 1`,
+      example:`Bacteria doubling every hour: N(t) = N₀ · 2ᵗ. After 10 hours, 1000 bacteria → 1000 × 2¹⁰ = 1,024,000!`,
+      analogy:`Exponential growth is like compound interest — small increases stack on top of each other and eventually explode.`
+    },
+    {
+      icon:"🪵", title:"Logarithmic Functions",
+      content:`The <strong>logarithm</strong> is the inverse of the exponential — it answers "what power do I raise a to, to get x?". The natural log ln(x) = log_e(x) is the most important in calculus.
+
+Key properties allow multiplication to become addition, and exponents to become multiplication — making complex calculations manageable.`,
+      formula:`logₐ(x) = y  ↔  aʸ = x
+ln(x) = log_e(x)
+Key Laws:
+  ln(xy) = ln(x) + ln(y)
+  ln(x/y) = ln(x) − ln(y)
+  ln(xⁿ) = n·ln(x)`,
+      example:`ln(e³) = 3 because e³ = e³. log₁₀(1000) = 3 because 10³ = 1000.`,
+      tip:`Logs and exponentials always undo each other: ln(eˣ) = x and e^(ln x) = x. This is hugely useful in calculus.`
+    },
+    {
+      icon:"🔁", title:"Inverse & Composite Functions",
+      content:`The <strong>inverse function</strong> f⁻¹(x) undoes what f does. If f(3) = 7, then f⁻¹(7) = 3. Graphically, the inverse is a reflection across the line y = x.
+
+A <strong>composite function</strong> f(g(x)) means apply g first, then f. Think of it as chaining machines together.`,
+      formula:`f(f⁻¹(x)) = x  and  f⁻¹(f(x)) = x
+(f∘g)(x) = f(g(x))  [composite]
+To find inverse: swap x and y, then solve for y`,
+      example:`f(x) = 2x + 3. Inverse: y = 2x+3 → x = 2y+3 → y = (x−3)/2. So f⁻¹(x) = (x−3)/2.`,
+      analogy:`Inverse functions are like GPS vs. a journey — one gets you from A to B, the other brings you back from B to A.`
+    },
+    {
+      icon:"🌊", title:"Trigonometric Functions",
+      content:`<strong>Sine, cosine, and tangent</strong> relate angles to ratios of sides in a right triangle. On the <em>unit circle</em> (radius = 1), cos(θ) is the x-coordinate and sin(θ) is the y-coordinate at angle θ.
+
+These functions are <em>periodic</em> — they repeat every 2π radians (360°). They describe waves, oscillations, and cycles throughout science.`,
+      formula:`sin θ = opposite/hypotenuse
+cos θ = adjacent/hypotenuse  
+tan θ = sin θ / cos θ
+Key identity: sin²θ + cos²θ = 1
+Period of sin and cos: 2π`,
+      example:`sin(π/6) = ½,  cos(π/3) = ½,  tan(π/4) = 1`,
+      tip:`Memorise the unit circle! Key values: 0°(0), 30°(π/6), 45°(π/4), 60°(π/3), 90°(π/2). Everything else follows from symmetry.`
+    },
+    {
+      icon:"🔃", title:"Polynomial & Power Functions",
+      content:`A <strong>polynomial</strong> is a sum of terms of the form axⁿ. The <em>degree</em> is the highest power. <strong>Power functions</strong> are f(x) = xⁿ — they grow and decay in characteristic shapes.
+
+End behaviour is determined by the leading term: even degree → both ends same direction; odd degree → ends go opposite directions.`,
+      formula:`P(x) = aₙxⁿ + aₙ₋₁xⁿ⁻¹ + ... + a₁x + a₀
+Power function: f(x) = xⁿ
+For large |x|, P(x) ≈ aₙxⁿ  (leading term dominates)`,
+      example:`f(x) = x³ − 3x: As x→+∞, f→+∞. As x→−∞, f→−∞ (odd degree, positive leading).`,
+      analogy:`Think of the leading term as the "boss" — for very large x, it completely controls the behaviour of the whole polynomial.`
+    }
+  ],
+  quiz:[
+    {q:"For f(x) = 3x − 5, what is f(4)?", opts:["7","12","17","−7"], ans:0, diff:"easy", exp:"f(4) = 3(4) − 5 = 12 − 5 = 7."},
+    {q:"What is the vertex of f(x) = x² − 6x + 8?", opts:["(3, −1)","(6, 8)","(3, 1)","(−3, −1)"], ans:0, diff:"medium", exp:"Vertex x = −(−6)/(2·1) = 3. f(3) = 9−18+8 = −1. Vertex = (3,−1)."},
+    {q:"Using the quadratic formula, how many real roots does x² + 2x + 5 = 0 have?", opts:["2","1","0","3"], ans:2, diff:"medium", exp:"Δ = 4 − 20 = −16 < 0. Negative discriminant means no real roots."},
+    {q:"What does ln(e⁴) equal?", opts:["e⁴","4e","4","1/4"], ans:2, diff:"easy", exp:"ln and e are inverse functions: ln(eˣ) = x, so ln(e⁴) = 4."},
+    {q:"If f(x) = 2x + 1, what is f⁻¹(x)?", opts:["(x−1)/2","2x−1","x/2 + 1","(x+1)/2"], ans:0, diff:"medium", exp:"Let y = 2x+1. Swap: x = 2y+1. Solve: y = (x−1)/2."},
+    {q:"sin²(θ) + cos²(θ) = ?", opts:["0","2","1","sin(2θ)"], ans:2, diff:"easy", exp:"This is the fundamental Pythagorean identity — always equals 1 for any angle θ."},
+    {q:"What is the period of f(x) = sin(x)?", opts:["π","2π","π/2","4π"], ans:1, diff:"easy", exp:"sin(x) repeats every 2π radians — that's one full revolution of the unit circle."},
+    {q:"If f(x) = x² and g(x) = x + 3, what is f(g(2))?", opts:["7","25","10","49"], ans:1, diff:"medium", exp:"g(2) = 5. Then f(g(2)) = f(5) = 25."},
+    {q:"Which function represents exponential DECAY?", opts:["f(x) = 2ˣ","f(x) = (½)ˣ","f(x) = x²","f(x) = eˣ"], ans:1, diff:"easy", exp:"For 0 < a < 1, aˣ decreases. (½)ˣ gets smaller as x increases — that's decay."},
+    {q:"Using log laws: log(100) − log(10) = ?", opts:["log(90)","log(10)","1","2"], ans:2, diff:"hard", exp:"log(100/10) = log(10) = 1. (Assuming base 10.)"}
+  ]
+},
+
+// ─── MODULE 2: LIMITS & DERIVATIVES ───
+{
+  id:2, title:"Limits & Introduction to Derivatives", color:"var(--teal)",
+  theory:[
+    {
+      icon:"🎯", title:"What is a Limit?",
+      content:`A <strong>limit</strong> describes the value a function <em>approaches</em> as the input gets close to some value — even if the function isn't defined there. We write lim(x→a) f(x) = L.
+
+The key idea: we're asking "where is f(x) heading?" not "what is f(a)?". The function may be undefined at x = a yet still have a limit.`,
+      formula:`lim(x→a) f(x) = L
+means: as x gets arbitrarily close to a,
+f(x) gets arbitrarily close to L
+
+Left-hand limit:  lim(x→a⁻) f(x)
+Right-hand limit: lim(x→a⁺) f(x)`,
+      example:`f(x) = (x²−1)/(x−1). At x=1, undefined (0/0). But factor: (x−1)(x+1)/(x−1) = x+1. So the limit as x→1 is 2.`,
+      analogy:`Imagine driving toward a city. The limit is the city you're heading toward — whether or not you actually arrive (the function may be undefined at that point).`
+    },
+    {
+      icon:"📊", title:"Limit Laws",
+      content:`<strong>Limit laws</strong> let you break complicated limits into simpler ones. The sum, difference, product, and quotient of limits follow intuitive rules.
+
+The <em>squeeze theorem</em> is powerful when direct calculation is hard: if g(x) ≤ f(x) ≤ h(x) near a, and g and h both approach L, then f also approaches L.`,
+      formula:`lim[f(x) + g(x)] = lim f(x) + lim g(x)
+lim[f(x) · g(x)] = lim f(x) · lim g(x)
+lim[f(x)/g(x)] = lim f(x) / lim g(x)  (if denominator ≠ 0)
+lim[f(x)]ⁿ = [lim f(x)]ⁿ`,
+      example:`lim(x→3)[x² + 2x] = lim(x²) + lim(2x) = 9 + 6 = 15`,
+      tip:`For polynomial and most rational functions, you can simply substitute x = a to find the limit — as long as you don't get 0/0 (indeterminate form).`
+    },
+    {
+      icon:"🔀", title:"Continuity",
+      content:`A function is <strong>continuous</strong> at x = a if: 1) f(a) is defined, 2) the limit exists at x = a, AND 3) the limit equals f(a).
+
+Intuitively: you can draw the graph without lifting your pencil. Discontinuities come in three flavours: <em>removable</em> (a hole), <em>jump</em> (two different sides), and <em>infinite</em> (vertical asymptote).`,
+      formula:`f is continuous at x = a if:
+  lim(x→a) f(x) = f(a)
+  
+Three conditions:
+  1) f(a) exists
+  2) lim(x→a) f(x) exists
+  3) They are equal`,
+      example:`f(x) = 1/x is discontinuous at x = 0 (undefined). f(x) = |x| is continuous everywhere.`,
+      analogy:`Continuity means no sudden jumps or breaks in the graph — like a road with no gaps or holes.`
+    },
+    {
+      icon:"⚡", title:"The Derivative — What It Is",
+      content:`The <strong>derivative</strong> f'(x) measures the <em>instantaneous rate of change</em> of a function — the slope of the tangent line at any point.
+
+It's defined as the limit of the slope of secant lines as the two points get closer and closer together. This elegant definition unites geometry (tangent slope) and motion (velocity).`,
+      formula:`f'(x) = lim(h→0) [f(x+h) − f(x)] / h
+
+This is called differentiation from first principles.
+f'(x) is read "f prime of x"`,
+      example:`f(x) = x². f'(x) = lim(h→0)[(x+h)² − x²]/h = lim(h→0)[2xh + h²]/h = lim(h→0)(2x + h) = 2x`,
+      analogy:`Think of a car's speedometer — it shows the instantaneous speed (rate of change of position). The derivative does the same for any function.`
+    },
+    {
+      icon:"📐", title:"Basic Differentiation Rules",
+      content:`Rather than using first principles every time, we have powerful <strong>shortcut rules</strong>. The power rule is the most-used: differentiate xⁿ by multiplying by n and reducing the power by 1.
+
+Constants differentiate to zero (a flat line has no slope), and the derivative of a sum is the sum of derivatives.`,
+      formula:`Power Rule:    d/dx[xⁿ] = nxⁿ⁻¹
+Constant:      d/dx[c] = 0
+Constant mult: d/dx[cf(x)] = cf'(x)
+Sum Rule:      d/dx[f+g] = f' + g'
+Special:       d/dx[eˣ] = eˣ,  d/dx[ln x] = 1/x`,
+      example:`f(x) = 4x³ − 3x² + 7x − 2
+f'(x) = 12x² − 6x + 7`,
+      tip:`The derivative of eˣ is eˣ — it's its own derivative! This is why e is so special in calculus.`
+    },
+    {
+      icon:"✍️", title:"Leibniz Notation",
+      content:`There are two common notations for derivatives. <strong>Leibniz notation</strong> (dy/dx) emphasises that the derivative is a ratio of infinitesimal changes. <strong>Prime notation</strong> (f'(x)) is compact. Both mean the same thing.
+
+The second derivative f''(x) = d²y/dx² measures the rate of change of the rate of change (acceleration!).`,
+      formula:`dy/dx = d/dx[y] = f'(x)  (all equivalent)
+d²y/dx² = f''(x)  (second derivative)
+Evaluate at x=a:  [dy/dx]_{x=a} or f'(a)`,
+      example:`If y = x³ + 2x, then dy/dx = 3x² + 2, and d²y/dx² = 6x.`,
+      tip:`Leibniz notation is better for substitution (chain rule) because dy/dx behaves like a fraction. Prime notation is faster for simple calculations.`
+    },
+    {
+      icon:"🚗", title:"Velocity & Acceleration",
+      content:`Position, velocity, and acceleration are the classic physical application of derivatives. If s(t) is position at time t, then velocity is the rate of change of position, and acceleration is the rate of change of velocity.
+
+This shows that calculus was literally invented to describe motion — Newton needed it to understand planetary orbits.`,
+      formula:`Position:     s(t)
+Velocity:     v(t) = s'(t) = ds/dt
+Acceleration: a(t) = v'(t) = s''(t)`,
+      example:`s(t) = t³ − 6t² + 9t. v(t) = 3t² − 12t + 9. a(t) = 6t − 12. At t=2: a = 0 (constant speed).`,
+      analogy:`Your car's position is s(t). The speedometer reads v(t). And when you press the accelerator, you're changing a(t).`
+    },
+    {
+      icon:"🔭", title:"Tangent Lines & Linear Approximation",
+      content:`The tangent line at a point is the best <em>linear approximation</em> to a curve near that point. Since the derivative gives the slope of the tangent, we can write its equation immediately.
+
+This idea — that curves "look straight" up close — is the foundation of differential calculus and many numerical methods.`,
+      formula:`Tangent line at (a, f(a)):
+y − f(a) = f'(a)(x − a)
+
+Linear approximation:
+f(x) ≈ f(a) + f'(a)(x − a)  for x near a`,
+      example:`f(x) = √x at x = 4. f'(x) = 1/(2√x), f'(4) = ¼. Tangent: y − 2 = ¼(x−4), so y = x/4 + 1.`,
+      tip:`Linear approximation is used everywhere in engineering and science — it lets you replace complicated curves with simple straight lines for local calculations.`
+    }
+  ],
+  quiz:[
+    {q:"What does lim(x→3) (x² + 1) equal?", opts:["10","9","1","does not exist"], ans:0, diff:"easy", exp:"For a polynomial, substitute directly: 3² + 1 = 9 + 1 = 10."},
+    {q:"lim(x→0) sin(x)/x equals:", opts:["0","∞","1","−1"], ans:2, diff:"hard", exp:"This is a famous limit — it equals 1. Proved by the squeeze theorem and fundamental to calculus."},
+    {q:"For f(x) = 5x⁴ − 3x + 2, what is f'(x)?", opts:["20x³ − 3","20x³ + 3","5x³ − 3","20x⁴ − 3"], ans:0, diff:"easy", exp:"Power rule: d/dx[5x⁴] = 20x³, d/dx[−3x] = −3, d/dx[2] = 0. Total: 20x³ − 3."},
+    {q:"What does f'(x) represent geometrically?", opts:["Area under the curve","Slope of the tangent line","Value of the function","Second derivative"], ans:1, diff:"easy", exp:"The derivative at a point gives the slope of the tangent line to the curve at that point."},
+    {q:"If s(t) = t² − 4t, what is the velocity at t = 3?", opts:["9","3","2","6"], ans:2, diff:"medium", exp:"v(t) = s'(t) = 2t − 4. At t=3: v(3) = 6 − 4 = 2."},
+    {q:"d/dx[eˣ] equals:", opts:["xeˣ⁻¹","eˣ⁻¹","eˣ","1/eˣ"], ans:2, diff:"easy", exp:"The natural exponential is its own derivative — one of the most beautiful facts in calculus!"},
+    {q:"Which of the following is the definition of f'(x)?", opts:["lim(h→0) f(h)/x","lim(h→0) [f(x+h)−f(x)]/h","lim(x→0) f(x)","f(x)/x"], ans:1, diff:"medium", exp:"The first-principles definition: f'(x) = lim(h→0) [f(x+h) − f(x)] / h."},
+    {q:"d/dx[ln x] equals:", opts:["1/x","ln(x−1)","x·ln x","eˣ"], ans:0, diff:"easy", exp:"d/dx[ln x] = 1/x. This is a fundamental result."},
+    {q:"A function is continuous at x = a if:", opts:["f(a) is defined only","the limit exists only","both f(a) is defined AND equals the limit","f'(a) exists"], ans:2, diff:"medium", exp:"Three conditions: f(a) defined, limit exists, and lim(x→a)f(x) = f(a)."},
+    {q:"For f(x) = x³, the tangent line at x = 2 has slope:", opts:["8","6","12","3"], ans:2, diff:"medium", exp:"f'(x) = 3x². At x=2: f'(2) = 3(4) = 12."}
+  ]
+},
+
+// ─── MODULE 3: DIFFERENTIATION RULES ───
+{
+  id:3, title:"Differentiation Rules & Applications", color:"var(--purple)",
+  theory:[
+    {
+      icon:"✖️", title:"The Product Rule",
+      content:`When two functions are <strong>multiplied together</strong>, you can't just differentiate each separately. The <em>product rule</em> says: differentiate the first, keep the second, PLUS keep the first, differentiate the second.
+
+A helpful way to remember: "first times derivative of second, plus second times derivative of first" — or using the phrase "d(uv) = u dv + v du".`,
+      formula:`If h(x) = f(x) · g(x), then:
+h'(x) = f'(x)·g(x) + f(x)·g'(x)
+
+Memory trick:
+  (fg)' = f'g + fg'`,
+      example:`h(x) = x²·sin(x).
+h'(x) = 2x·sin(x) + x²·cos(x)`,
+      tip:`Always identify f and g clearly before applying the rule. Labelling them f = ___ and g = ___ first saves confusion.`
+    },
+    {
+      icon:"➗", title:"The Quotient Rule",
+      content:`When one function is <strong>divided by another</strong>, use the quotient rule. A classic memory aid: "low d-high minus high d-low, over low-low" — where "high" is the numerator and "low" is the denominator.`,
+      formula:`If h(x) = f(x)/g(x), then:
+h'(x) = [f'(x)·g(x) − f(x)·g'(x)] / [g(x)]²
+
+Memory: "Lo-D-Hi minus Hi-D-Lo, over Lo-Lo"`,
+      example:`h(x) = x²/(x+1)
+h'(x) = [2x(x+1) − x²(1)] / (x+1)²
+       = [2x² + 2x − x²] / (x+1)²
+       = (x² + 2x) / (x+1)²`,
+      tip:`Don't forget to SQUARE the denominator at the bottom. And note the MINUS sign in the middle — it's easy to accidentally use + instead.`
+    },
+    {
+      icon:"⛓️", title:"The Chain Rule",
+      content:`The <strong>chain rule</strong> handles <em>composite functions</em> — a function inside another function. The rule: differentiate the outer function (leaving the inner alone), then MULTIPLY by the derivative of the inner function.
+
+This is the most-used rule in calculus — most real-world functions are composites.`,
+      formula:`If h(x) = f(g(x)), then:
+h'(x) = f'(g(x)) · g'(x)
+
+Leibniz form: dy/dx = (dy/du) · (du/dx)
+
+"Derivative of outside × derivative of inside"`,
+      example:`h(x) = sin(x²)
+Outer: sin(u), inner: u = x²
+h'(x) = cos(x²) · 2x = 2x·cos(x²)`,
+      analogy:`Chain rule is like a relay race — each function passes the "derivative baton" to the next one in the chain.`
+    },
+    {
+      icon:"📉", title:"Increasing & Decreasing Functions",
+      content:`A function is <strong>increasing</strong> where its derivative is <em>positive</em> (slope going up) and <strong>decreasing</strong> where its derivative is <em>negative</em> (slope going down).
+
+Finding where f'(x) = 0 gives the <em>critical points</em> — potential turning points where the function might change direction.`,
+      formula:`f increasing on (a,b) ↔ f'(x) > 0 for x ∈ (a,b)
+f decreasing on (a,b) ↔ f'(x) < 0 for x ∈ (a,b)
+Critical points: solve f'(x) = 0  (or where f' undefined)`,
+      example:`f(x) = x³ − 3x. f'(x) = 3x² − 3 = 3(x−1)(x+1).
+f' > 0 for x < −1 or x > 1 (increasing)
+f' < 0 for −1 < x < 1 (decreasing)`,
+      tip:`Draw a sign diagram for f'(x) — this immediately tells you all increasing/decreasing intervals.`
+    },
+    {
+      icon:"🏔️", title:"Maxima & Minima",
+      content:`A <strong>local maximum</strong> is a point higher than all nearby points; a <strong>local minimum</strong> is lower than all nearby points. They occur at critical points.
+
+The <em>First Derivative Test</em>: if f' changes from + to − at a critical point, it's a local max. If f' changes from − to +, it's a local min. If f' doesn't change sign, it's neither.`,
+      formula:`At critical point x = c:
+  f' changes + to − → local maximum
+  f' changes − to + → local minimum
+  f' doesn't change sign → inflection point
+
+Absolute max/min: check critical points AND endpoints`,
+      example:`f(x) = x³ − 3x at x = 1: f' changes from − to +, so local min. At x = −1: f' changes from + to −, so local max.`,
+      analogy:`Think of a mountain range — local maxima are mountain peaks, local minima are valley bottoms.`
+    },
+    {
+      icon:"🔄", title:"The Second Derivative Test",
+      content:`The <strong>second derivative</strong> f''(x) tells us about <em>concavity</em>. At a critical point, if f''(c) > 0, the curve is concave up (like a bowl) — it's a local minimum. If f''(c) < 0, it's concave down (like a hill) — a local maximum.
+
+This is often faster than the first derivative test.`,
+      formula:`At critical point c where f'(c) = 0:
+  f''(c) > 0 → local minimum (concave up ∪)
+  f''(c) < 0 → local maximum (concave down ∩)
+  f''(c) = 0 → inconclusive (use 1st deriv. test)`,
+      example:`f(x) = x³ − 3x. f'(x) = 3x²−3, f''(x) = 6x.
+At x=1: f''(1)=6>0 → local min. At x=−1: f''(−1)=−6<0 → local max.`,
+      tip:`The second derivative test is a shortcut, but it fails when f''(c) = 0. Always have the first derivative test as a backup.`
+    },
+    {
+      icon:"🌀", title:"Concavity & Inflection Points",
+      content:`<strong>Concave up</strong> means the curve bends upward (like ∪) — f'' > 0. <strong>Concave down</strong> means it bends downward (like ∩) — f'' < 0.
+
+An <em>inflection point</em> is where the concavity changes (f'' changes sign). Crucially, f'' = 0 is necessary but not sufficient — the sign must actually change.`,
+      formula:`f''(x) > 0 → concave up (holds water)
+f''(x) < 0 → concave down (spills water)
+Inflection point: f'' changes sign at x = c`,
+      example:`f(x) = x³. f''(x) = 6x. At x=0: f'' changes from − to +. So (0,0) is an inflection point.`,
+      analogy:`Imagine a skateboard ramp — concave up is like the bottom of a half-pipe (you speed up), concave down is like the top of a hill (you slow down).`
+    },
+    {
+      icon:"🎨", title:"Curve Sketching & Optimisation",
+      content:`<strong>Curve sketching</strong> combines all derivative tools into a complete picture: find intercepts, critical points, inflection points, asymptotes, and concavity — then sketch.
+
+<strong>Optimisation</strong> is finding the maximum or minimum value of a function in real-world problems — the most powerful application of differential calculus.`,
+      formula:`Curve Sketch Checklist:
+  1. Domain and intercepts
+  2. f'(x): critical points, increasing/decreasing
+  3. f''(x): concavity, inflection points
+  4. Asymptotes
+  5. Sketch
+
+Optimisation: find critical points, test endpoints`,
+      example:`Maximise area of rectangle with perimeter 40: A = xy, 2x+2y=40 → y=20−x. A(x)=x(20−x). A'=20−2x=0 → x=10. Max area = 100.`,
+      tip:`In optimisation, always define your variable, write the function, differentiate, find critical points, and then verify it's a max (or min) — don't just assume.`
+    }
+  ],
+  quiz:[
+    {q:"Differentiate h(x) = x³·eˣ using the product rule.", opts:["3x²eˣ","x³eˣ + 3x²eˣ","3x²eˣ + eˣ","x³eˣ − 3x²eˣ"], ans:1, diff:"medium", exp:"Product rule: (x³)'eˣ + x³(eˣ)' = 3x²eˣ + x³eˣ = eˣ(3x² + x³)."},
+    {q:"Differentiate h(x) = sin(3x) using the chain rule.", opts:["cos(3x)","3cos(3x)","−cos(3x)","sin(3)"], ans:1, diff:"easy", exp:"Outer: sin(u) → cos(u). Inner: 3x → 3. h'(x) = cos(3x) · 3 = 3cos(3x)."},
+    {q:"If f'(x) > 0 on an interval, then f is:", opts:["concave up","decreasing","increasing","at a maximum"], ans:2, diff:"easy", exp:"Positive derivative means the function is increasing on that interval."},
+    {q:"Using the quotient rule, differentiate h(x) = x/sin(x).", opts:["[sin(x)−xcos(x)]/sin²(x)","[sin(x)+xcos(x)]/sin²(x)","1/cos(x)","cos(x)/sin²(x)"], ans:0, diff:"hard", exp:"Quotient rule: (1·sin(x) − x·cos(x)) / sin²(x) = (sin(x) − xcos(x)) / sin²(x)."},
+    {q:"At a critical point where f'(c)=0 and f''(c)>0, the point is:", opts:["local maximum","inflection point","local minimum","saddle point"], ans:2, diff:"medium", exp:"Positive second derivative means concave up — like a bowl. A critical point in a bowl is a local minimum."},
+    {q:"Find the critical points of f(x) = 2x³ − 6x.", opts:["x = 0 only","x = ±1","x = ±3","x = 1 only"], ans:1, diff:"medium", exp:"f'(x) = 6x² − 6 = 0 → x² = 1 → x = ±1."},
+    {q:"An inflection point occurs where:", opts:["f(x) = 0","f'(x) = 0","f''(x) changes sign","f'(x) is maximum"], ans:2, diff:"medium", exp:"Inflection points are where concavity changes — where f'' changes from + to − or − to +."},
+    {q:"Differentiate f(x) = (2x + 1)⁵.", opts:["5(2x+1)⁴","10(2x+1)⁴","5(2x+1)⁴·2","(2x+1)⁵·2"], ans:1, diff:"medium", exp:"Chain rule: 5(2x+1)⁴ · d/dx[2x+1] = 5(2x+1)⁴ · 2 = 10(2x+1)⁴."},
+    {q:"A rectangle has area A = x(20−x). The maximum area occurs at x =", opts:["10","20","5","15"], ans:0, diff:"medium", exp:"A'(x) = 20 − 2x = 0 → x = 10. A''(x) = −2 < 0 confirms it's a maximum."},
+    {q:"f''(x) < 0 means the function is:", opts:["decreasing","concave up","concave down","at a minimum"], ans:2, diff:"easy", exp:"Negative second derivative means the function is bending downward — concave down, like an upside-down bowl."}
+  ]
+},
+
+// ─── MODULE 4: INTEGRATION ───
+{
+  id:4, title:"Integration", color:"var(--coral)",
+  theory:[
+    {
+      icon:"∑", title:"Riemann Sums & Definite Integrals",
+      content:`The <strong>definite integral</strong> ∫ₐᵇ f(x) dx represents the <em>signed area</em> under the curve f(x) between x=a and x=b. We approximate it with <strong>Riemann sums</strong> — rectangles under the curve.
+
+As the rectangles get thinner (n→∞), the sum converges to the exact integral. This is the beautiful "limit of a sum" definition.`,
+      formula:`Riemann Sum ≈ Σ f(xᵢ)·Δx  (n rectangles)
+Δx = (b−a)/n
+
+Definite integral = lim(n→∞) Σ f(xᵢ)·Δx
+                 = ∫ₐᵇ f(x) dx`,
+      example:`Area under f(x)=x² from 0 to 3: ∫₀³ x² dx = [x³/3]₀³ = 9 − 0 = 9`,
+      analogy:`Imagine slicing the area under a curve into infinitely many thin strips. Each strip is nearly a rectangle. The integral adds them all up perfectly.`
+    },
+    {
+      icon:"🏛️", title:"The Fundamental Theorem of Calculus",
+      content:`The <strong>Fundamental Theorem of Calculus (FTC)</strong> is the most important theorem in calculus — it connects derivatives and integrals, showing they are opposite operations.
+
+Part 1: If F(x) = ∫ₐˣ f(t) dt, then F'(x) = f(x) — integration is the inverse of differentiation. Part 2: ∫ₐᵇ f(x) dx = F(b) − F(a), where F is any antiderivative of f.`,
+      formula:`FTC Part 2: ∫ₐᵇ f(x) dx = F(b) − F(a)
+where F'(x) = f(x)  (F is an antiderivative)
+
+Antiderivative rules:
+  ∫ xⁿ dx = xⁿ⁺¹/(n+1) + C  (n ≠ −1)
+  ∫ eˣ dx = eˣ + C
+  ∫ 1/x dx = ln|x| + C`,
+      example:`∫₁⁴ 2x dx = [x²]₁⁴ = 16 − 1 = 15`,
+      tip:`Always add the constant of integration C for indefinite integrals (no limits). It represents any constant that disappears when differentiated.`
+    },
+    {
+      icon:"🏞️", title:"Areas Between Curves",
+      content:`To find the area <strong>between two curves</strong>, integrate the <em>difference</em> (top curve minus bottom curve) over the interval where they overlap. The key is identifying which function is on top.
+
+Always check intersection points — they give the limits of integration.`,
+      formula:`Area = ∫ₐᵇ [f(x) − g(x)] dx
+where f(x) ≥ g(x) on [a, b]
+
+Find intersection: solve f(x) = g(x)`,
+      example:`Area between y = x² and y = x from 0 to 1:
+∫₀¹ (x − x²) dx = [x²/2 − x³/3]₀¹ = ½ − ⅓ = 1/6`,
+      tip:`If the curves cross within the interval, split the integral at crossing points and use |f−g| in each sub-interval.`
+    },
+    {
+      icon:"🔄", title:"Integration by Substitution",
+      content:`<strong>U-substitution</strong> is the integration version of the chain rule. When you see a function and its derivative together inside an integral, make a substitution u = g(x) to simplify.
+
+The key step: replace dx with du/g'(x). If the substitution works, the integral becomes simpler in terms of u.`,
+      formula:`∫ f(g(x))·g'(x) dx
+Let u = g(x), du = g'(x) dx
+= ∫ f(u) du  (integrate in terms of u)
+Then substitute back: replace u with g(x)`,
+      example:`∫ 2x·cos(x²) dx. Let u = x², du = 2x dx.
+= ∫ cos(u) du = sin(u) + C = sin(x²) + C`,
+      analogy:`Substitution is like a change of variables — you "zoom in" on the ugly part, replace it with u, solve the cleaner integral, then zoom back out.`
+    },
+    {
+      icon:"🌊", title:"Displacement from Velocity",
+      content:`The fundamental link: integrating velocity gives <em>displacement</em> (change in position). Integrating acceleration gives velocity. This is the physical meaning of integration — it "adds up" all the small changes.
+
+The definite integral ∫ₐᵇ v(t) dt gives the total displacement from time a to b — not total distance (which requires |v(t)|).`,
+      formula:`Displacement = ∫ₐᵇ v(t) dt = s(b) − s(a)
+Distance = ∫ₐᵇ |v(t)| dt  (account for direction changes)
+
+Velocity from acceleration:
+v(t) = ∫ a(t) dt + C`,
+      example:`v(t) = 3t². Displacement from t=0 to t=2: ∫₀² 3t² dt = [t³]₀² = 8 − 0 = 8 units.`,
+      tip:`Displacement and distance are different! If a particle goes forward 5 then back 3, displacement = 2 but distance = 8.`
+    },
+    {
+      icon:"🔃", title:"Odd & Even Functions",
+      content:`<strong>Even functions</strong> satisfy f(−x) = f(x) — symmetric about the y-axis (like x², cos(x)). <strong>Odd functions</strong> satisfy f(−x) = −f(x) — symmetric about the origin (like x³, sin(x)).
+
+This symmetry is incredibly useful for definite integrals over symmetric intervals. Even functions double the half-integral; odd functions integrate to exactly zero!`,
+      formula:`Even: f(−x) = f(x)  (y-axis symmetry)
+  ∫₋ₐᵃ f(x) dx = 2∫₀ᵃ f(x) dx
+
+Odd: f(−x) = −f(x)  (origin symmetry)
+  ∫₋ₐᵃ f(x) dx = 0`,
+      example:`∫₋₂² x³ dx = 0 (x³ is odd — areas cancel exactly)
+∫₋₂² x² dx = 2∫₀² x² dx = 2[x³/3]₀² = 16/3`,
+      tip:`Before computing any integral over [−a, a], always check if the function is odd or even — it can save enormous amounts of work!`
+    },
+    {
+      icon:"📦", title:"Logistic Growth",
+      content:`The <strong>logistic function</strong> models growth that is initially exponential but slows as it approaches a carrying capacity (environmental limit). It produces an S-shaped (sigmoid) curve.
+
+This appears everywhere: population growth, spread of diseases, learning curves, and market saturation.`,
+      formula:`Logistic function: P(t) = K / (1 + Ae⁻ʳᵗ)
+K = carrying capacity (max population)
+r = growth rate,  A = initial conditions
+
+dP/dt = rP(1 − P/K)  (logistic ODE)`,
+      example:`With K=1000, r=0.5, A=9: P(0) = 1000/10 = 100. As t→∞, P→1000.`,
+      analogy:`Logistic growth is like bacteria in a petri dish — exponential at first, then slowing as resources run out, approaching a maximum population.`
+    },
+    {
+      icon:"🚀", title:"Applications — Escape Velocity",
+      content:`<strong>Escape velocity</strong> is the minimum speed needed to break free from a planet's gravity without further propulsion. It's derived using integration — specifically by computing the work done against gravity over infinite distance.
+
+This is a beautiful example of an improper integral — integrating to infinity — giving a finite, meaningful answer.`,
+      formula:`Work against gravity from surface to ∞:
+W = ∫_{R}^{∞} (GMm/r²) dr = GMm/R
+
+Escape velocity (set kinetic energy = W):
+½mv² = GMm/R
+v_escape = √(2GM/R)
+
+For Earth: v_escape ≈ 11.2 km/s`,
+      example:`Earth: G=6.67×10⁻¹¹, M=5.97×10²⁴ kg, R=6.37×10⁶ m. v = √(2×6.67×10⁻¹¹×5.97×10²⁴/6.37×10⁶) ≈ 11.2 km/s`,
+      analogy:`Escape velocity is why rockets need so much fuel — they have to fight gravity all the way out of Earth's "gravity well". Integration tells us exactly how much energy that requires.`
+    }
+  ],
+  quiz:[
+    {q:"∫ 3x² dx = ?", opts:["x³ + C","6x + C","x³/3 + C","3x³ + C"], ans:0, diff:"easy", exp:"Power rule for integration: ∫ xⁿ dx = xⁿ⁺¹/(n+1). So ∫ 3x² dx = 3·x³/3 + C = x³ + C."},
+    {q:"Evaluate ∫₀² 4x dx", opts:["4","8","16","2"], ans:1, diff:"easy", exp:"∫₀² 4x dx = [2x²]₀² = 2(4) − 2(0) = 8."},
+    {q:"The Fundamental Theorem of Calculus states that ∫ₐᵇ f(x) dx =", opts:["f(b) + f(a)","F(a) − F(b)","F(b) − F(a)","f(b) · f(a)"], ans:2, diff:"easy", exp:"FTC: ∫ₐᵇ f(x) dx = F(b) − F(a), where F is any antiderivative of f."},
+    {q:"For u-substitution of ∫ 2x·eˣ² dx, the correct substitution is:", opts:["u = eˣ","u = x²","u = 2x","u = x²+1"], ans:1, diff:"medium", exp:"Let u = x², then du = 2x dx. The integral becomes ∫ eᵘ du = eᵘ + C = eˣ² + C."},
+    {q:"∫₋₃³ x⁵ dx = ?", opts:["0","6·3⁵","2·3⁵","486"], ans:0, diff:"medium", exp:"x⁵ is an odd function (f(−x) = −f(x)). Integrating an odd function over a symmetric interval [−a,a] always gives 0."},
+    {q:"The area between f(x) = x and g(x) = x² from 0 to 1 is:", opts:["1/6","1/3","1/2","1/4"], ans:0, diff:"medium", exp:"∫₀¹ (x − x²) dx = [x²/2 − x³/3]₀¹ = 1/2 − 1/3 = 1/6."},
+    {q:"If v(t) = 6t², what is the displacement from t=1 to t=3?", opts:["54","52","26","162"], ans:1, diff:"medium", exp:"∫₁³ 6t² dt = [2t³]₁³ = 2(27) − 2(1) = 54 − 2 = 52."},
+    {q:"∫ eˣ dx = ?", opts:["eˣ⁻¹ + C","xeˣ + C","eˣ + C","1/eˣ + C"], ans:2, diff:"easy", exp:"The exponential is its own antiderivative: ∫ eˣ dx = eˣ + C."},
+    {q:"What does the constant C represent in an indefinite integral?", opts:["Zero","Any constant (family of antiderivatives)","The initial condition only","The definite integral value"], ans:1, diff:"easy", exp:"When you differentiate any constant, you get 0. So the antiderivative is a family of curves — any constant C could have been there."},
+    {q:"The logistic function models growth that:", opts:["increases without bound","decreases exponentially","approaches a maximum (carrying capacity)","oscillates between two values"], ans:2, diff:"medium", exp:"The logistic model captures S-shaped growth — initially exponential, then slowing as it approaches the carrying capacity K."}
+  ]
+}
+]; // end MODULES
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let currentModule = 0;
+let currentTab = 'theory';
+let quizState = {};    // per module
+let scores = JSON.parse(localStorage.getItem('calc-scores') || '{}');
+const COLORS = ['var(--gold)','var(--blue)','var(--teal)','var(--purple)','var(--coral)'];
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function goHome() {
+  document.getElementById('home').classList.add('active');
+  document.getElementById('learn').classList.remove('active');
+  document.getElementById('home').scrollTop = 0;
+  updateHomeProgress();
+}
+
+function openModule(idx) {
+  currentModule = idx;
+  currentTab = 'theory';
+  document.getElementById('home').classList.remove('active');
+  document.getElementById('learn').classList.add('active');
+  document.getElementById('learnTitle').textContent = `Module ${idx+1} — ${MODULES[idx].title}`;
+  document.getElementById('tab-theory').classList.add('active');
+  document.getElementById('tab-quiz').classList.remove('active');
+  document.getElementById('body-theory').classList.add('active');
+  document.getElementById('body-quiz').classList.remove('active');
+  renderTheory(idx);
+  renderQuiz(idx);
+  window.scrollTo(0, 0);
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-theory').classList.toggle('active', tab==='theory');
+  document.getElementById('tab-quiz').classList.toggle('active', tab==='quiz');
+  document.getElementById('body-theory').classList.toggle('active', tab==='theory');
+  document.getElementById('body-quiz').classList.toggle('active', tab==='quiz');
+  window.scrollTo(0,0);
+}
+
+// ══════════════════════════════════════════════
+// THEORY RENDERER
+// ══════════════════════════════════════════════
+function renderTheory(idx) {
+  const m = MODULES[idx];
+  const color = COLORS[idx];
+  let html = `
+    <div class="theory-intro">
+      <p><strong>Module ${idx+1}: ${m.title}</strong><br/>
+      Work through each topic below. Focus on understanding the <strong>why</strong>, not just the how. 
+      Each section includes formulas, worked examples, and analogies to build deep intuition.</p>
+    </div>`;
+
+  m.theory.forEach((t, ti) => {
+    html += `
+    <div class="topic-block">
+      <div class="topic-header">
+        <div class="topic-icon" style="background:rgba(${hexToRgb(color)},0.1)">${t.icon}</div>
+        <span class="topic-num" style="color:${color}">0${ti+1}</span>
+        <span class="topic-title">${t.title}</span>
+      </div>
+      <div class="theory-text">${t.content}</div>`;
+
+    if (t.formula) {
+      html += `<div class="formula-box"><div class="flabel">Formula / Definition</div>${escHtml(t.formula)}</div>`;
+    }
+    if (t.example) {
+      html += `<div class="example-box"><div class="ex-label">✎ Worked Example</div><div class="ex-text">${t.example}</div></div>`;
+    }
+    if (t.tip) {
+      html += `<div class="tip-box"><span class="tip-icon">💡</span><div class="tip-text">${t.tip}</div></div>`;
+    }
+    if (t.analogy) {
+      html += `<div class="analogy-box"><div class="analogy-label">🧠 Analogy / Intuition</div><div class="analogy-text">${t.analogy}</div></div>`;
+    }
+    html += `</div>`;
+  });
+
+  html += `<div style="text-align:center;padding:2rem 0 1rem">
+    <button class="btn-primary" onclick="switchTab('quiz')">Take the Quiz →</button>
+  </div>`;
+
+  document.getElementById('theoryContent').innerHTML = html;
+}
+
+function hexToRgb(cssVar) {
+  const map = {
+    'var(--gold)':'240,180,41',
+    'var(--blue)':'72,149,239',
+    'var(--teal)':'6,214,160',
+    'var(--purple)':'155,93,229',
+    'var(--coral)':'255,107,107'
+  };
+  return map[cssVar] || '200,200,200';
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br/>');
+}
+
+// ══════════════════════════════════════════════
+// QUIZ RENDERER
+// ══════════════════════════════════════════════
+function initQuizState(idx) {
+  const m = MODULES[idx];
+  quizState[idx] = {
+    answers: new Array(m.quiz.length).fill(null),
+    submitted: new Array(m.quiz.length).fill(false),
+    finished: false
+  };
+}
+
+function renderQuiz(idx) {
+  if (!quizState[idx]) initQuizState(idx);
+  const m = MODULES[idx];
+  const color = COLORS[idx];
+  const qs = m.quiz;
+  const saved = scores[idx];
+
+  let html = `
+    <div class="quiz-header">
+      <div class="quiz-title">Module ${idx+1} Quiz</div>
+      <div class="quiz-sub">${qs.length} questions · test your understanding</div>
+    </div>
+    <div class="quiz-prog-bar"><div class="quiz-prog-fill" id="qpf-${idx}" style="width:0%"></div></div>`;
+
+  if (quizState[idx].finished) {
+    html += renderResult(idx);
+  } else {
+    qs.forEach((q, qi) => {
+      const diffClass = q.diff === 'easy' ? 'diff-easy' : q.diff === 'medium' ? 'diff-medium' : 'diff-hard';
+      const letters = ['A','B','C','D'];
+      const submitted = quizState[idx].submitted[qi];
+      const userAns = quizState[idx].answers[qi];
+
+      html += `<div class="question-card" id="qcard-${idx}-${qi}">
+        <div class="q-meta">
+          <span class="q-num">Question ${qi+1} of ${qs.length}</span>
+          <span class="q-diff ${diffClass}">${q.diff.toUpperCase()}</span>
+        </div>
+        <div class="q-text">${q.q}</div>
+        <div class="options-grid">`;
+
+      q.opts.forEach((opt, oi) => {
+        let cls = '';
+        if (submitted) {
+          if (oi === q.ans) cls = 'correct';
+          else if (oi === userAns && oi !== q.ans) cls = 'wrong';
+          else cls = 'answered reveal';
+        }
+        const clickFn = submitted ? '' : `onclick="selectAnswer(${idx},${qi},${oi})"`;
+        html += `<button class="opt-btn ${cls}" id="opt-${idx}-${qi}-${oi}" ${clickFn}>
+          <span class="opt-letter">${letters[oi]}</span>
+          <span class="opt-text">${opt}</span>
+        </button>`;
+      });
+
+      html += `</div>`;
+      if (submitted) {
+        html += `<div class="q-explanation show">
+          <div class="exp-label">Explanation</div>
+          <div class="exp-text">${q.exp}</div>
+        </div>`;
+      } else {
+        html += `<div class="q-explanation" id="qexp-${idx}-${qi}">
+          <div class="exp-label">Explanation</div>
+          <div class="exp-text">${q.exp}</div>
+        </div>`;
+      }
+      html += `</div>`;
+    });
+
+    const answered = quizState[idx].answers.filter(a => a !== null).length;
+    html += `<div class="quiz-nav">
+      <span class="qnav-info">${answered} of ${qs.length} answered</span>
+      <button class="btn-primary" onclick="submitQuiz(${idx})" ${answered < qs.length ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>
+        Submit Quiz
+      </button>
+    </div>`;
+  }
+
+  document.getElementById('quizContent').innerHTML = html;
+  updateQuizProgress(idx);
+}
+
+function selectAnswer(modIdx, qIdx, optIdx) {
+  if (!quizState[modIdx]) return;
+  if (quizState[modIdx].submitted[qIdx]) return;
+  quizState[modIdx].answers[qIdx] = optIdx;
+  // Highlight selected
+  const letters = ['A','B','C','D'];
+  for (let i = 0; i < 4; i++) {
+    const btn = document.getElementById(`opt-${modIdx}-${qIdx}-${i}`);
+    if (!btn) continue;
+    if (i === optIdx) {
+      btn.style.borderColor = COLORS[modIdx];
+      btn.querySelector('.opt-letter').style.background = COLORS[modIdx];
+      btn.querySelector('.opt-letter').style.color = '#000';
+    } else {
+      btn.style.borderColor = '';
+      btn.querySelector('.opt-letter').style.background = '';
+      btn.querySelector('.opt-letter').style.color = '';
+    }
+  }
+  updateQuizProgress(modIdx);
+  // Update submit button
+  const answered = quizState[modIdx].answers.filter(a => a !== null).length;
+  const submitBtn = document.querySelector(`#quizContent .btn-primary`);
+  if (submitBtn) {
+    submitBtn.disabled = answered < MODULES[modIdx].quiz.length;
+    submitBtn.style.opacity = answered < MODULES[modIdx].quiz.length ? '.4' : '1';
+    submitBtn.style.cursor = answered < MODULES[modIdx].quiz.length ? 'not-allowed' : 'pointer';
+    const navInfo = document.querySelector('.qnav-info');
+    if (navInfo) navInfo.textContent = `${answered} of ${MODULES[modIdx].quiz.length} answered`;
+  }
+}
+
+function submitQuiz(modIdx) {
+  const qs = MODULES[modIdx].quiz;
+  const state = quizState[modIdx];
+  if (!state) return;
+  let correct = 0;
+  qs.forEach((q, qi) => {
+    state.submitted[qi] = true;
+    if (state.answers[qi] === q.ans) correct++;
+  });
+  state.finished = true;
+  state.score = correct;
+  scores[modIdx] = correct;
+  localStorage.setItem('calc-scores', JSON.stringify(scores));
+  renderQuiz(modIdx);
+  updateHomeProgress();
+  window.scrollTo(0,0);
+}
+
+function renderResult(modIdx) {
+  const qs = MODULES[modIdx].quiz;
+  const correct = quizState[modIdx].score;
+  const total = qs.length;
+  const pct = Math.round((correct/total)*100);
+  const color = COLORS[modIdx];
+
+  let grade, msg;
+  if (pct >= 90) { grade = 'A+'; msg = 'Outstanding! You have mastered this module.'; }
+  else if (pct >= 80) { grade = 'A'; msg = 'Excellent work! Strong understanding demonstrated.'; }
+  else if (pct >= 70) { grade = 'B'; msg = 'Good job! Review a few topics to strengthen further.'; }
+  else if (pct >= 60) { grade = 'C'; msg = 'Decent effort. Re-read the theory and try again.'; }
+  else { grade = 'D'; msg = 'Keep studying! Review the theory section carefully.'; }
+
+  const circ = 2 * Math.PI * 52;
+  const offset = circ * (1 - pct/100);
+
+  return `<div class="quiz-result show">
+    <div class="result-ring">
+      <svg width="140" height="140" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r="52" fill="none" stroke="var(--border2)" stroke-width="8"/>
+        <circle cx="70" cy="70" r="52" fill="none" stroke="${color}" stroke-width="8"
+          stroke-linecap="round"
+          stroke-dasharray="${circ}"
+          stroke-dashoffset="${offset}"
+          transform="rotate(-90 70 70)"
+          style="transition:stroke-dashoffset 1s ease"/>
+      </svg>
+      <div class="result-score-text">
+        <span class="result-big" style="color:${color}">${correct}</span>
+        <span class="result-denom">/ ${total}</span>
+      </div>
+    </div>
+    <div class="result-grade" style="color:${color}">${grade} — ${pct}%</div>
+    <div class="result-msg">${msg}</div>
+    <div class="result-breakdown">
+      <div class="rb-stat"><span class="rb-val correct-val">${correct}</span><span class="rb-lbl">Correct</span></div>
+      <div class="rb-stat"><span class="rb-val wrong-val">${total-correct}</span><span class="rb-lbl">Incorrect</span></div>
+      <div class="rb-stat"><span class="rb-val" style="color:${color}">${pct}%</span><span class="rb-lbl">Score</span></div>
+    </div>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <button class="btn-outline" onclick="retryQuiz(${modIdx})">Retry Quiz</button>
+      <button class="btn-primary" onclick="switchTab('theory')">Review Theory</button>
+      ${modIdx < 4 ? `<button class="btn-outline" onclick="openModule(${modIdx+1})">Next Module →</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function retryQuiz(modIdx) {
+  initQuizState(modIdx);
+  renderQuiz(modIdx);
+  window.scrollTo(0,0);
+}
+
+function updateQuizProgress(modIdx) {
+  const total = MODULES[modIdx].quiz.length;
+  const answered = quizState[modIdx] ? quizState[modIdx].answers.filter(a=>a!==null).length : 0;
+  const bar = document.getElementById(`qpf-${modIdx}`);
+  if (bar) bar.style.width = (answered/total*100) + '%';
+}
+
+// ══════════════════════════════════════════════
+// HOME PROGRESS
+// ══════════════════════════════════════════════
+function updateHomeProgress() {
+  const total = Object.keys(scores).length;
+  const totalCorrect = Object.values(scores).reduce((a,b) => a+b, 0);
+  const maxPossible = MODULES.length * 10;
+  const pct = Math.round(totalCorrect / maxPossible * 100);
+  document.getElementById('globalPct').textContent = pct + '%';
+
+  MODULES.forEach((m, i) => {
+    const ring = document.getElementById(`prog-ring-${i}`);
+    if (!ring) return;
+    const sc = scores[i];
+    const fill = sc !== undefined ? Math.round(sc/10*100) : 0;
+    ring.setAttribute('stroke-dashoffset', 100-fill);
+  });
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+updateHomeProgress();
+</script>
+</body>
+</html>
